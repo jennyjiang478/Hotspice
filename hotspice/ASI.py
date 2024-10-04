@@ -261,6 +261,44 @@ class IP_Ising(IP_ASI):
     def _get_groundstate(self):
         return 'uniform'
 
+class IP_Ising_Offset(IP_ASI):
+    def __init__(self, a: float, b: float = None, n: int = None, *, nx: int = None, ny: int = None, **kwargs):
+        """ In-plane ASI with all spins on an alternating offset square grid, all pointing in the same direction. """
+        self.a = a # [m] The distance between two nearest neighboring spins in x direction
+        self.b = b # [m] The distance between two nearest neighboring spins in y direction
+        if b is None: b = a * xp.sqrt(3) # Equilateral triangles if distances unspecified
+        if nx is None: nx = n
+        if ny is None: ny = n
+        if nx is None or ny is None: raise AttributeError("Must specify <n> if either <nx> or <ny> are not specified.")
+        dx, dy = kwargs.pop('dx', a/2), kwargs.pop('dy', b/2)
+        super().__init__(nx, ny, dx, dy, in_plane=True, **kwargs)
+
+    def _set_m(self, pattern: str):
+        match str(pattern).strip().lower():
+            case 'afm':
+                self.m = (self.iyy % 2)*2 - 1
+            case str(unknown_pattern):
+                super()._set_m(pattern=unknown_pattern)
+
+    def _get_angles(self):
+        return xp.zeros_like(self.xx)
+
+    def _get_occupation(self):
+        return (self.ixx + self.iyy) % 2 == 1
+
+    def _get_appropriate_avg(self):
+        return ['point', 'cross', 'squarefour']
+
+    def _get_AFMmask(self):
+        return xp.array([[1, 1], [-1, -1]])/4
+
+    def _get_nearest_neighbors(self):
+        return xp.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+
+    def _get_groundstate(self):
+        return 'uniform'
+
+
 
 class IP_Square_Closed(IP_ASI):
     def __init__(self, a: float, n: int = None, *, nx: int = None, ny: int = None, **kwargs):
